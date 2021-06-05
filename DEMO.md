@@ -11,11 +11,11 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 
 ## Table of Contents  
 * [Anomaly detection in Netflow log](#anomaly-detection-in-netflow-log).  
-  * [Initial One time Setup] (#initial-setup)
-  * [Raw Data Ingestion](#anomaly-detection-reference-architecture-using-bqml).      
-  * [Data Transformation](#data-transformation). 
-  * [Realtime outlier detection using Dataflow](#find-the-outliers).   
-  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
+  * [Initial One time Setup](#initial-one-time-setup) 
+  * [Raw Data Ingestion](#raw-data-ingestion)     
+  * [Data Transformation](#data-transformation) 
+  * [Realtime outlier detection](#realtime-outlier-detection).   
+  * [Train & Normalize Data Using BQ ML](#train-normalize-data).
   * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
   * [Looker Integration](#looker-integration). 
 	
@@ -268,10 +268,10 @@ The output contains a subset of NetFlow log schema fields populated with random 
 2. Source Schema table raw_netflow_log_data
 ![raw_schema](diagram/raw_log_data_schema.png)
 
-## Realtime outlier detection using Dataflow
+## Realtime outlier detection
 
-## Train & Normalize Data Using BQ ML
+## Train Normalize Data
 
-## Sensitive data (IMSI) de-identification using Cloud DLP
+## DLP Integration
 
 ## Looker Integration
