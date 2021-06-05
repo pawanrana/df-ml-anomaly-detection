@@ -311,8 +311,128 @@ The output is similar to the following:
 +---------------+--------------+----------------------------+
 ```
 
-## Train Normalize Data
-
 ## DLP Integration
+In this section, you reuse the pipeline by passing an additional parameter to de-identify the international mobile subscriber identity (IMSI) number in the subscriber_id column.
+
+1. In Cloud Shell, create a crypto key:
+
+```
+export TEK=$(openssl rand -base64 32); 
+echo ${TEK}
+```
+2. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
+
+```
+{
+  "deidentifyTemplate": {
+    "displayName": "Config to de-identify IMEI Number",
+    "description": "IMEI Number masking transformation",
+    "deidentifyConfig": {
+      "recordTransformations": {
+        "fieldTransformations": [
+          {
+            "fields": [
+              {
+                "name": "subscriber_id"
+              }
+            ],
+            "primitiveTransformation": {
+              "cryptoDeterministicConfig": {
+                "cryptoKey": {
+                  "unwrapped": {
+                    "key": "CRYPTO_KEY"
+                  }
+                },
+                "surrogateInfoType": {
+                  "name": "IMSI_TOKEN"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "templateId": "dlp-deid-subid"
+}
+```
+
+3. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
+
+```
+export DLP_API_ROOT_URL="https://dlp.googleapis.com"
+export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
+export DEID_CONFIG="@deid_template.json"
+
+export ACCESS_TOKEN=$(gcloud auth print-access-token)
+curl -X POST -H "Content-Type: application/json" \
+   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+   "${DEID_TEMPLATE_API}" \
+   -d "${DEID_CONFIG}"
+```
+This creates a template with the following name in your Cloud project:
+
+```
+"name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
+```
+
+4. Stop the pipeline that you triggered in an earlier step:
+
+```
+gcloud dataflow jobs list --filter="name=anomaly-detection" --state=active
+```
+
+5. Trigger the anomaly detection pipeline using the Cloud DLP de-identify the template name:
+
+```
+gcloud beta dataflow flex-template run "anomaly-detection-with-dlp" \
+--project=${PROJECT_ID} \
+--region=us-central1 \
+--template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
+--parameters=autoscalingAlgorithm="NONE",\
+numWorkers=5,\
+maxNumWorkers=5,\
+workerMachineType=n1-highmem-4,\
+subscriberId=projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_ID},\
+tableSpec=${PROJECT_ID}:${DATASET_NAME}.cluster_model_data,\
+batchFrequency=2,\
+customGcsTempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
+tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
+clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
+outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
+inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
+workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/us-central1-b/diskTypes/pd-ssd,\
+diskSizeGb=5,\
+windowInterval=10,\
+writeMethod=FILE_LOADS,\
+streaming=true,\
+deidTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid
+```
+
+6. Query the outlier table to validate that the subscriber ID is successfully de-identified:
+
+```
+export DLP_OUTLIER_TABLE_QUERY='SELECT subscriber_id,dst_subnet,transaction_time
+FROM `'${PROJECT_ID}.${DATASET_NAME}'.outlier_data`
+ORDER BY transaction_time DESC'
+
+bq query --nouse_legacy_sql $DLP_OUTLIER_TABLE_QUERY >> outlier_deid.txt
+
+cat outlier_deid.txt
+```
+
+7. The output is similar to the following:
+
+```
++---------------+--------------+----------------------------+
+| subscriber_id |  dst_subnet  |      transaction_time      |
++---------------+--------------+----------------------------+
+| IMSI_TOKEN(64):AcZD2U2v//QiKkGzbFCm29pv5cqVi3Db09Z6CNt5cQSevBKRQvgdDfacPQIRY1dc| 12.0.1.3/22 | 2020-07-09 21:29:36.571000 |
++---------------+--------------+----------------------------+
+```
+
+If the subscriber ID was de-identified, the subscriber_id column is no longer the original subscriber ID, which was 00000000000
+
+## Train Normalize Data
 
 ## Looker Integration
