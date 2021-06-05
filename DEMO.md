@@ -11,7 +11,8 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 
 ## Table of Contents  
 * [Anomaly detection in Netflow log](#anomaly-detection-in-netflow-log).  
-  * [Initial Setup](#initial-setup) 
+  * [Automated Initial Setup](#automated-initial-setup) 
+  * [Manual Initial Setup](#manual-initial-setup) 
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection)   
@@ -21,7 +22,51 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
   * [Visualisation](#looker-integration). 
 	
 
-## Initial Setup
+## Automated Initial Setup
+(Try and Correct this Tomorrow)
+1. Enable APIs
+
+```
+gcloud services enable storage_component
+gcloud services enable dataflow
+gcloud services enable cloudbuild.googleapis.com
+gcloud config set project <project_id>
+```
+
+2. Access to Cloud Build Service Account
+
+```
+export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)") 
+gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/editor
+gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/storage.objectAdmin
+```
+
+3. Export Required Parameters
+
+```
+export DATASET=<var>bq-dataset-name</var>
+export SUBSCRIPTION_ID=<var>subscription_id</var>
+export TOPIC_ID=<var>topic_id</var>
+export DATA_STORAGE_BUCKET=${PROJECT_ID}-<var>data-storage-bucket</var>
+export DEID_TEMPLATE=projects/{id}/deidentifyTemplates/{template_id}
+export BATCH_SIZE = 350000
+```
+
+Batch Size is in bytes and max allowed is less than 520KB/payload
+
+4. Trigger Cloud Build Script
+
+```
+gcloud builds submit scripts/. --config scripts/cloud-build-demo.yaml  --substitutions \
+_DATASET=$DATASET,\
+_DATA_STORAGE_BUCKET=$DATA_STORAGE_BUCKET,\
+_SUBSCRIPTION_ID=${SUBSCRIPTION_ID},\
+_TOPIC_ID=${TOPIC_ID},\
+_API_KEY=$(gcloud auth print-access-token)
+```
+
+## Manual Initial Setup 
+(Optional)
 1. In the Google Cloud Console, on the project selector page, select or create a Google Cloud project.
 
 Note: If you don't plan to keep the resources that you create in this procedure, create a project instead of selecting an existing project. After you finish these steps, you can delete the project, removing all resources associated with the project.
