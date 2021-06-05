@@ -13,10 +13,9 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 * [Anomaly detection in Netflow log](#anomaly-detection-in-netflow-log).  
   * [Initial One time Setup] (#initial-setup)
   * [Raw Data Ingestion](#anomaly-detection-reference-architecture-using-bqml).      
-  * [Data Transformation](#data-transformation).   
-  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml )
-  * [Feature Extraction Using Dataflow](#feature-extraction-after-aggregation). 
-  * [Realtime outlier detection using Dataflow](#find-the-outliers). 
+  * [Data Transformation](#data-transformation). 
+  * [Realtime outlier detection using Dataflow](#find-the-outliers).   
+  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
   * [Looker Integration](#looker-integration). 
 	
@@ -265,61 +264,14 @@ The output contains a subset of NetFlow log schema fields populated with random 
 
 1. Target Schema table cluster_model_data
 ![target_schema](diagram/cluster_model_data.png)
+
 2. Source Schema table raw_netflow_log_data
 ![raw_schema](diagram/raw_log_data_schema.png)
 
-## Quick Start
+## Realtime outlier detection using Dataflow
 
-[![Open in Cloud Shell](http://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/GoogleCloudPlatform/df-ml-anomaly-detection.git)
+## Train & Normalize Data Using BQ ML
 
-### Enable APIs
+## Sensitive data (IMSI) de-identification using Cloud DLP
 
-```gcloud services enable bigquery
-gcloud services enable storage_component
-gcloud services enable dataflow
-gcloud services enable cloudbuild.googleapis.com
-gcloud config set project <project_id>
-```
-### Access to Cloud Build Service Account 
-
-```export PROJECT_ID=$(gcloud config get-value project)
-export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)") 
-gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/editor
-gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/storage.objectAdmin
-```
-
-#### Export Required Parameters 
-```
-export DATASET=<var>bq-dataset-name</var>
-export SUBSCRIPTION_ID=<var>subscription_id</var>
-export TOPIC_ID=<var>topic_id</var>
-export DATA_STORAGE_BUCKET=${PROJECT_ID}-<var>data-storage-bucket</var>
-```
-You can also export DLP template and batch size to enable DLP transformation in the pipeline
-* Batch Size is in bytes and max allowed is less than 520KB/payload
-```
-export DEID_TEMPLATE=projects/{id}/deidentifyTemplates/{template_id}
-export BATCH_SIZE = 350000
-```
-#### Trigger Cloud Build Script
-
-```
-gcloud builds submit scripts/. --config scripts/cloud-build-demo.yaml  --substitutions \
-_DATASET=$DATASET,\
-_DATA_STORAGE_BUCKET=$DATA_STORAGE_BUCKET,\
-_SUBSCRIPTION_ID=${SUBSCRIPTION_ID},\
-_TOPIC_ID=${TOPIC_ID},\
-_API_KEY=$(gcloud auth print-access-token)
-```
-#### (Optional) Trigger the pipelines using flex template
-If you have all other resources like BigQuery tables, PubSub topic and subscriber, GCS bucket already exist or created before, you can use the command below to trigger the pipeline by using a public image. This may be helpful for run the pipeline for live demo. 
-
-Generate 10k msg/sec of random net flow log data:
-```
-gcloud beta dataflow flex-template run data-generator --project=<project_id> --region=<region> --template-file-gcs-location=gs://df-ml-anomaly-detection-mock-data/dataflow-flex-template/dynamic_template_data_generator_template.json --parameters=autoscalingAlgorithm="NONE",numWorkers=5,maxNumWorkers=5,workerMachineType=n1-standard-4,qps=10000,schemaLocation=gs://df-ml-anomaly-detection-mock-data/schema/next-demo-schema.json,eventType=net-flow-log,topic=projects/<project_id>/topics/events
-```
-Generate 1k msg/sec of random outlier data:
-```
-gcloud beta dataflow flex-template run data-generator --project=<project_id> --region=<region> --template-file-gcs-location=gs://df-ml-anomaly-detection-mock-data/dataflow-flex-template/dynamic_template_data_generator_template.json --parameters=autoscalingAlgorithm="NONE",numWorkers=5,maxNumWorkers=5,workerMachineType=n1-standard-4,qps=1000,schemaLocation=gs://df-ml-anomaly-detection-mock-data/schema/next-demo-schema-outlier.json,eventType=net-flow-log,topic=projects/<project_id>/topics/<topic_id>
-```
-
+## Looker Integration
