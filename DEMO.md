@@ -11,14 +11,14 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 
 ## Table of Contents  
 * [Anomaly detection in Netflow log](#anomaly-detection-in-netflow-log).  
-	* [Initial One time Setup] (#initial-setup)
+  * [Initial One time Setup] (#initial-setup)
   * [Raw Data Ingestion](#anomaly-detection-reference-architecture-using-bqml).      
-	* [Data Transformation](#quick-start).   
-	* [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml )
-	* [Feature Extraction Using Dataflow](#feature-extraction-after-aggregation). 
-	* [Realtime outlier detection using Dataflow](#find-the-outliers). 
-	* [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
-	* [Looker Integration](#looker-integration). 
+  * [Data Transformation](#data-transformation).   
+  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml )
+  * [Feature Extraction Using Dataflow](#feature-extraction-after-aggregation). 
+  * [Realtime outlier detection using Dataflow](#find-the-outliers). 
+  * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
+  * [Looker Integration](#looker-integration). 
 	
 
 ## Initial One time Setup
@@ -205,12 +205,15 @@ gcloud pubsub topics publish ${TOPIC_ID} --message \
 
 2. After a minute or so, validate that the Raw message is pushed to the topic and stored in the BigQuery table:
 
-
+```
 export RAW_TABLE_QUERY='SELECT subscriber_id,srcIP,startTime
 FROM `'${PROJECT_ID}.${DATASET_NAME}'.netflow_log_data`
 WHERE subscriber_id like "0%"'
+
 bq query --nouse_legacy_sql $RAW_TABLE_QUERY >> raw_orig.txt
 cat raw_orig.txt
+```
+
 The output is similar to the following:
 
 ```
@@ -256,7 +259,7 @@ The output contains a subset of NetFlow log schema fields populated with random 
 } 
 ```
 
-## Anomaly Detection Reference Architecture Using BQML
+## Data Transformation
 
 
 ![ref_arch](diagram/ref_arch.png)
