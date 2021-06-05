@@ -11,7 +11,7 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 
 ## Table of Contents  
 * [Anomaly detection in Netflow log](#anomaly-detection-in-netflow-log).  
-  * [Initial One time Setup](#initial-one-time-setup) 
+  * [Initial Setup](#initial-setup) 
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection).   
@@ -20,7 +20,7 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
   * [Looker Integration](#looker-integration). 
 	
 
-## Initial One time Setup
+## Initial Setup
 1. In the Google Cloud Console, on the project selector page, select or create a Google Cloud project.
 
 Note: If you don't plan to keep the resources that you create in this procedure, create a project instead of selecting an existing project. After you finish these steps, you can delete the project, removing all resources associated with the project.
