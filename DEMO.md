@@ -24,13 +24,13 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 1. In the Google Cloud Console, on the project selector page, select or create a Google Cloud project.
 
 Note: If you don't plan to keep the resources that you create in this procedure, create a project instead of selecting an existing project. After you finish these steps, you can delete the project, removing all resources associated with the project.
-[Go to project selector] (https://console.cloud.google.com/projectselector2/home/dashboard)
+[Go to project selector](https://console.cloud.google.com/projectselector2/home/dashboard)
 
-2. Make sure that billing is enabled for your Cloud project. [Learn how to confirm that billing is enabled for your project.] (https://cloud.google.com/billing/docs/how-to/modify-project)
+2. Make sure that billing is enabled for your Cloud project. [Learn how to confirm that billing is enabled for your project.](https://cloud.google.com/billing/docs/how-to/modify-project)
 
 3. In the Cloud Console, activate Cloud Shell.
 
-[Activate Cloud Shell] (https://console.cloud.google.com/?cloudshell=true)
+[Activate Cloud Shell](https://console.cloud.google.com/?cloudshell=true)
 
 At the bottom of the Cloud Console, a Cloud Shell session starts and displays a command-line prompt. Cloud Shell is a shell environment with the Cloud SDK already installed, including the gcloud command-line tool, and with values already set for your current project. It can take a few seconds for the session to initialize.
 
