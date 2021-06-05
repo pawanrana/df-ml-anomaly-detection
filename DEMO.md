@@ -435,4 +435,86 @@ If the subscriber ID was de-identified, the subscriber_id column is no longer th
 
 ## Create a K-means model using bq ml
 
+1. In the Cloud Console, go to the BigQuery Query editor page.
+
+[Go to Query editor](https://console.cloud.google.com/bigquery)
+
+2. Select training data from the feature table and create a k-means clustering model using BigQuery ML:
+
+```
+--> temp table for training data
+#standardSQL
+CREATE OR REPLACE TABLE DATASET_ID.train_data as
+(SELECT * FROM DATASET_ID.cluster_model_data
+WHERE _PARTITIONDATE BETWEEN START_DATE AND END_DATE
+AND NOT IS_NAN(avg_tx_bytes)
+AND NOT IS_NAN(avg_rx_bytes)
+AND NOT IS_NAN(avg_duration))
+limit 100000;
+
+--> create a model using BigQuery ML
+#standardSQL
+CREATE OR REPLACE MODEL DATASET_ID.log_cluster options(model_type='kmeans', standardize_features = true) AS
+SELECT * EXCEPT (transaction_time,subscriber_id,number_of_unique_ips, number_of_unique_ports, dst_subnet)
+FROM DATASET_ID.train_data;
+```
+Replace the following:
+
+START_DATE and END_DATE: the current date ('yyyy-mm-dd' format)
+DATASET_ID: your created dataset ID
+
+3. Normalize the data for each cluster:
+
+```
+--> create normalize table for each centroid
+#standardSQL
+CREATE OR REPLACE TABLE DATASET_ID.normalized_centroid_data as(
+with centroid_details AS (
+SELECT centroid_id,array_agg(struct(feature as name, round(numerical_value,1) as value)
+order by centroid_id) AS cluster
+from ML.CENTROIDS(model DATASET_ID.log_cluster)
+group by centroid_id
+),
+cluster as (select centroid_details.centroid_id as centroid_id,
+(select value from unnest(cluster) where name = 'number_of_records') AS number_of_records,
+(select value from unnest(cluster) where name = 'max_tx_bytes') AS max_tx_bytes,
+(select value from unnest(cluster) where name = 'min_tx_bytes') AS min_tx_bytes,
+(select value from unnest(cluster) where name = 'avg_tx_bytes') AS avg_tx_bytes,
+(select value from unnest(cluster) where name = 'max_rx_bytes') AS max_rx_bytes,
+(select value from unnest(cluster) where name = 'min_rx_bytes') AS min_rx_bytes,
+(select value from unnest(cluster) where name = 'avg_rx_bytes') AS avg_rx_bytes,
+(select value from unnest(cluster) where name = 'max_duration') AS max_duration,
+(select value from unnest(cluster) where name = 'min_duration') AS min_duration,
+(select value from unnest(cluster) where name = 'avg_duration') AS avg_duration
+FROM centroid_details order by centroid_id asc),
+predict as
+(select * from ML.PREDICT(model DATASET_ID.log_cluster,
+(select * from DATASET_ID.train_data)))
+select c.centroid_id as centroid_id,
+(stddev((p.number_of_records-c.number_of_records)+(p.max_tx_bytes-c.max_tx_bytes)+(p.min_tx_bytes-c.min_tx_bytes)+(p.avg_tx_bytes-c.min_tx_bytes)+(p.max_rx_bytes-c.max_rx_bytes)+(p.min_rx_bytes-c.min_rx_bytes)+      (p.avg_rx_bytes-c.min_rx_bytes)
++(p.max_duration-c.max_duration)+(p.min_duration-c.min_duration)+(p.avg_duration-c.avg_duration)))
+as normalized_dest, any_value(c.number_of_records) as number_of_records,any_value(c.max_tx_bytes) as max_tx_bytes,  any_value(c.min_tx_bytes) as min_tx_bytes , any_value(c.avg_tx_bytes) as   avg_tx_bytes,any_value(c.max_rx_bytes) as max_rx_bytes,   any_value(c.min_tx_bytes) as min_rx_bytes ,any_value(c.avg_rx_bytes) as avg_rx_bytes,  any_value(c.avg_duration) as avg_duration,any_value(c.max_duration)
+as max_duration , any_value(c.min_duration) as min_duration
+from predict as p
+inner join cluster as c on c.centroid_id = p.centroid_id
+group by c.centroid_id);
+```
+
+This query calculates a normalized distance for each cluster by using the standard deviation function between the input and centroid vectors. In other words, it implements the following formula:
+
+stddev(input_value_x-centroid_value_x)+(input_value_y-centroid_value_y)+(..))
+
+4. Validate the normalized_centroid_data table: Replace DATASET_ID with the ID of your created dataset.
+
+```
+#standardSQL
+SELECT * from DATASET_ID.normalized_centroid_data
+```
+
+The result from this statement is a table of calculated normalized distances for each centroid ID:
+
+5. Normalized data for each k-means cluster.
+![model_training](diagram/bq-ml-kmeans-1.png)
+![model_training](diagram/bq-ml-kmeans-2.png)
+
 ## Looker Integration
