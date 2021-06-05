@@ -261,8 +261,10 @@ The output contains a subset of NetFlow log schema fields populated with random 
 
 ## Data Transformation
 
+![transformation_pipeline](diagram/data-transformation.png)
 
-![ref_arch](diagram/ref_arch.png)
+1. Target Schema table cluster_model_data
+2. Source Schema table raw_netflow_log_data
 
 ## Quick Start
 
