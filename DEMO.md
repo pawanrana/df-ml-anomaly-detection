@@ -179,24 +179,82 @@ streaming=true,\
 logTableSpec=${PROJECT_ID}:${DATASET_NAME}.netflow_log_data
 ```
 
-In the Cloud Console, go to the Dataflow page.
-
-Go to the Dataflow page
+14. In the Cloud Console, go to the Dataflow page.
 
 Click the netflow-anomaly-detection-date +%Y%m%d-%H%M%S-%N` job. A representation of the Dataflow pipeline that's similar to the following appears:
+![log_data_dag](diagram/with_log_data_dag.png)
 
 ## Raw Data Ingestion
-This section of the repo contains a reference implementation of an ML based Network Anomaly Detection solution by using Pub/Sub, Dataflow, BQML & Cloud DLP.  It uses an easy to use built in K-Means clustering model as part of BQML to train and normalize netflow log data.   Key part of the  implementation  uses  Dataflow for  feature extraction & real time outlier detection which  has been tested to process over 20TB of data. (250k msg/sec). Finally, it also uses Cloud DLP to tokenize IMSI  (international mobile subscriber identity) number as the streaming Dataflow pipeline  ingests millions of netflow log form Pub/Sub.   
 
-Securing its internal network from malware and security threats is critical at many customers. With the ever changing malware landscape and explosion of activities in IoT and M2M, existing signature based solutions for malware detection are no longer sufficient. This PoC highlights an ML based network anomaly detection solution using PubSub, Dataflow, BQ ML and DLP to detect mobile malware on subscriber devices and suspicious behaviour in wireless networks.
+1. Publish a message to the Topic
+```
+gcloud pubsub topics publish ${TOPIC_ID} --message \
+"{\"subscriberId\": \"00123456789\",  \
+\"srcIP\": \"12.0.1.1\", \
+\"dstIP\": \"12.0.1.3\", \
+\"srcPort\": 5000, \
+\"dstPort\": 3000, \
+\"txBytes\": 300, \
+\"rxBytes\": 400, \
+\"startTime\": 1570276550, \
+\"endTime\": 1570276550, \
+\"tcpFlag\": 0, \
+\"protocolName\": \"tcp\", \
+\"protocolNumber\": 0}"
+```
 
-This solution implements the reference architecture highlighted below. You will execute a <b>dataflow streaming pipeline</b> to process netflow log from GCS and/or PubSub to find outliers in netflow logs  in real time.  This solution also uses a built in K-Means Clustering Model created by using <b>BQ-ML</b>. To see a step-by-step tutorial that walks you through implementing this solution, see [Building a secure anomaly detection solution using Dataflow, BigQuery ML, and Cloud Data Loss Prevention](https://cloud.google.com/solutions/building-anomaly-detection-dataflow-bigqueryml-dlp).   
+2. After a minute or so, validate that the Raw message is pushed to the topic and stored in the BigQuery table:
 
-In summary, you can use this solution to demo following 3 use cases :
 
-1.  Streaming Analytics at Scale by using Dataflow/Beam. (Feature Extraction & Online Prediction).  
-2. Making Machine Learning easy to do by creating a model by using BQ ML K-Means Clustering.  
-3. Protecting sensitive information e.g:"IMSI (international mobile subscriber identity)" by using Cloud DLP crypto based tokenization.  
+export RAW_TABLE_QUERY='SELECT subscriber_id,srcIP,startTime
+FROM `'${PROJECT_ID}.${DATASET_NAME}'.netflow_log_data`
+WHERE subscriber_id like "0%"'
+bq query --nouse_legacy_sql $RAW_TABLE_QUERY >> raw_orig.txt
+cat raw_orig.txt
+The output is similar to the following:
+
+```
++---------------+--------------+----------------------------+
+| subscriber_id |  srcIP       |   startTime.           |
++---------------+--------------+----------------------------+
+| 00123456789.  | 12.0.1.1.    | 1570276550             |
++---------------+--------------+----------------------------+
+```
+
+4. Use Cloud Build to Start the source data generation :
+
+```
+gcloud builds submit . --machine-type=n1-highcpu-8 \
+  --config scripts/cloud-build-data-generator.yaml \
+  --substitutions _TOPIC_ID=${TOPIC_ID}
+```
+Because of the large code package, you must use a high memory machine type. For this tutorial, use machine-type=n1-highcpu-8.
+
+5. Validate that the log data is published in the subscription:
+
+```
+gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1 >> raw_log.txt
+cat raw_log.txt
+```
+
+The output contains a subset of NetFlow log schema fields populated with random values, similar to the following:
+
+```
+{
+ \"subscriberId\": \"mharper\",
+ \"srcIP\": \"12.0.9.4",
+ \"dstIP\": \"12.0.1.2\",
+ \"srcPort\": 5000,
+ \"dstPort\": 3000,
+ \"txBytes\": 15,
+ \"rxBytes\": 40,
+ \"startTime\": 1570276550,
+ \"endTime\": 1570276559,
+ \"tcpFlag\": 0,
+ \"protocolName\": \"tcp\",
+ \"protocolNumber\": 0
+} 
+```
 
 ## Anomaly Detection Reference Architecture Using BQML
 
