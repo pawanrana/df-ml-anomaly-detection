@@ -269,6 +269,47 @@ The output contains a subset of NetFlow log schema fields populated with random 
 ![raw_schema](diagram/raw_log_data_schema.png)
 
 ## Realtime outlier detection
+1. Outlier detection part of the pipeline
+
+![outlier_data_dag](diagram/dag_2.png)
+
+2. In Cloud Shell, publish the following message
+
+```
+gcloud pubsub topics publish ${TOPIC_ID} --message \
+"{\"subscriberId\": \"00000000000000000\",  \
+\"srcIP\": \"12.0.9.4\", \
+\"dstIP\": \"12.0.1.3\", \
+\"srcPort\": 5000, \
+\"dstPort\": 3000, \
+\"txBytes\": 150000, \
+\"rxBytes\": 40000, \
+\"startTime\": 1570276550, \
+\"endTime\": 1570276550, \
+\"tcpFlag\": 0, \
+\"protocolName\": \"tcp\", \
+\"protocolNumber\": 0}"
+```
+Notice the unusually high number of transmission (txBytes) and receiving bytes (rxBytes) compared to the range (100 to 500 bytes) set up for synthetic data. This message might indicate a security risk to validate
+
+3. After a minute or so, validate that the anomaly is identified and stored in the BigQuery table:
+
+```
+export OUTLIER_TABLE_QUERY='SELECT subscriber_id,dst_subnet,transaction_time
+FROM `'${PROJECT_ID}.${DATASET_NAME}'.outlier_data`
+WHERE subscriber_id like "0%" limit 1'
+bq query --nouse_legacy_sql $OUTLIER_TABLE_QUERY >> outlier_orig.txt
+cat outlier_orig.txt
+```
+The output is similar to the following:
+
+```
++---------------+--------------+----------------------------+
+| subscriber_id |  dst_subnet  |   transaction_time |
++---------------+--------------+----------------------------+
+| 00000000000| 12.0.1.3/22 | 2020-07-09 21:29:36.571000 |
++---------------+--------------+----------------------------+
+```
 
 ## Train Normalize Data
 
