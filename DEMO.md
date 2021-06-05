@@ -79,7 +79,40 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --role roles/iam.serviceAccountUser
 ```
 
-8. In Cloud Shell, create a BigQuery dataset and necessary Tables
+8. Use Cloud Build to Start the source data generation :
+
+```
+gcloud builds submit . --machine-type=n1-highcpu-8 \
+  --config scripts/cloud-build-data-generator.yaml \
+  --substitutions _TOPIC_ID=${TOPIC_ID}
+```
+
+9. Validate that the log data is published in the subscription:
+
+```
+gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1 >> raw_log.txt
+cat raw_log.txt
+```
+The output contains a subset of NetFlow log schema fields populated with random values, similar to the following:
+
+```
+{
+ \"subscriberId\": \"mharper\",
+ \"srcIP\": \"12.0.9.4",
+ \"dstIP\": \"12.0.1.2\",
+ \"srcPort\": 5000,
+ \"dstPort\": 3000,
+ \"txBytes\": 15,
+ \"rxBytes\": 40,
+ \"startTime\": 1570276550,
+ \"endTime\": 1570276559,
+ \"tcpFlag\": 0,
+ \"protocolName\": \"tcp\",
+ \"protocolNumber\": 0
+} 
+```
+
+10. In Cloud Shell, create a BigQuery dataset and necessary Tables
 
 ```
 export DATASET_NAME=demoanomalydetect1
@@ -109,12 +142,15 @@ bq mk -t --schema src/main/resources/normalized_centroid_data_schema.json \
 ```
 The following tables are generated:
 
-netflow_log_data: a clustered partition table that stores the raw netflow log data as ingested from source
-cluster_model_data: a clustered partition table that stores feature values for model creation.
-outlier_data: an outlier table that stores anomalies.
-normalized_centroid_data: a table pre-populated with normalized data created from a sample model.
+netflow_log_data: a clustered partition table that stores the raw netflow log data as ingested from source. 
 
-9. Load the Centroid Sample data into Centroid Table
+cluster_model_data: a clustered partition table that stores feature values for model creation. 
+
+outlier_data: an outlier table that stores anomalies. 
+
+normalized_centroid_data: a table pre-populated with normalized data created from a sample model. 
+
+11. Load the Centroid Sample data into Centroid Table
 
 ```
 bq load \
@@ -123,14 +159,14 @@ bq load \
   gs://df-ml-anomaly-detection-mock-data/sample_model/normalized_centroid_data.json src/main/resources/normalized_centroid_data_schema.json
 ```
 
-10. In Cloud Shell, create a Docker image in your project:
+12. In Cloud Shell, create a Docker image in your project:
 
 ```
 gcloud auth configure-docker
 gradle jib --image=gcr.io/${PROJECT_ID}/df-ml-anomaly-detection:latest -DmainClass=com.google.solutions.df.log.aggregations.SecureLogAggregationPipeline
 ```
 
-11. Upload the Flex Template configuration file to the Cloud Storage bucket that you created earlier:
+13. Upload the Flex Template configuration file to the Cloud Storage bucket that you created earlier:
 
 ```
 export DF_TEMPLATE_CONFIG_BUCKET=${PROJECT_ID}-anomaly-config
@@ -142,17 +178,17 @@ cat << EOF | gsutil cp - gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secu
 EOF
 ```
 
-12. Create a SQL file to pass the normalized model data as a pipeline parameter:
+14. Create a SQL file to pass the normalized model data as a pipeline parameter:
 
 ```
 echo "SELECT * FROM \`${PROJECT_ID}.${DATASET_NAME}.normalized_centroid_data\`" > normalized_cluster_data.sql
 gsutil cp normalized_cluster_data.sql gs://${DF_TEMPLATE_CONFIG_BUCKET}/
 ```
 
-13. Create the end to end anomaly detection pipeline:
+15. Create the end to end anomaly detection pipeline:
 
 ```
-gcloud beta dataflow flex-template run "anomaly-detection-with-dlp" \
+gcloud beta dataflow flex-template run "anomaly-detection" \
 --project=${PROJECT_ID} \
 --region=${REGION} \
 --template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
@@ -176,14 +212,78 @@ streaming=true,\
 logTableSpec=${PROJECT_ID}:${DATASET_NAME}.netflow_log_data
 ```
 
-14. In the Cloud Console, go to the Dataflow page.
+16. In Cloud Shell, create a crypto key:
 
-Click the netflow-anomaly-detection-date +%Y%m%d-%H%M%S-%N` job. A representation of the Dataflow pipeline that's similar to the following appears:
+```
+export TEK=$(openssl rand -base64 32); 
+echo ${TEK}
+```
+
+17. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
+
+```
+{
+  "deidentifyTemplate": {
+    "displayName": "Config to de-identify IMEI Number",
+    "description": "IMEI Number masking transformation",
+    "deidentifyConfig": {
+      "recordTransformations": {
+        "fieldTransformations": [
+          {
+            "fields": [
+              {
+                "name": "subscriber_id"
+              }
+            ],
+            "primitiveTransformation": {
+              "cryptoDeterministicConfig": {
+                "cryptoKey": {
+                  "unwrapped": {
+                    "key": "CRYPTO_KEY"
+                  }
+                },
+                "surrogateInfoType": {
+                  "name": "IMSI_TOKEN"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "templateId": "dlp-deid-subid"
+}
+```
+
+18. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
+
+```
+export DLP_API_ROOT_URL="https://dlp.googleapis.com"
+export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
+export DEID_CONFIG="@deid_template.json"
+
+export ACCESS_TOKEN=$(gcloud auth print-access-token)
+curl -X POST -H "Content-Type: application/json" \
+   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+   "${DEID_TEMPLATE_API}" \
+   -d "${DEID_CONFIG}"
+```
+This creates a template with the following name in your Cloud project:
+
+```
+"name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
+```
+
+19. In the Cloud Console, go to the Dataflow page.
+
+Click the `netflow-anomaly-detection` job. A representation of the Dataflow pipeline that's similar to the following appears:
 ![log_data_dag](diagram/with_log_data_dag.png)
 
 ## Raw Data Ingestion
 
-1. Publish a message to the Topic
+1. Discuss and Explain the Raw Data Ingestion part of the Pipeline
+2. Publish a message to the Topic
 ```
 gcloud pubsub topics publish ${TOPIC_ID} --message \
 "{\"subscriberId\": \"00123456789\",  \
@@ -205,7 +305,7 @@ gcloud pubsub topics publish ${TOPIC_ID} --message \
 ```
 export RAW_TABLE_QUERY='SELECT subscriber_id,srcIP,startTime
 FROM `'${PROJECT_ID}.${DATASET_NAME}'.netflow_log_data`
-WHERE subscriber_id like "0%"'
+WHERE subscriber_id like "00123%"'
 
 bq query --nouse_legacy_sql $RAW_TABLE_QUERY >> raw_orig.txt
 cat raw_orig.txt
@@ -217,57 +317,28 @@ The output is similar to the following:
 +---------------+--------------+----------------------------+
 | subscriber_id |  srcIP       |   startTime.           |
 +---------------+--------------+----------------------------+
-| 00123456789.  | 12.0.1.1.    | 1570276550             |
+| 00123456789   | 12.0.1.1.    | 1570276550             |
 +---------------+--------------+----------------------------+
-```
-
-4. Use Cloud Build to Start the source data generation :
-
-```
-gcloud builds submit . --machine-type=n1-highcpu-8 \
-  --config scripts/cloud-build-data-generator.yaml \
-  --substitutions _TOPIC_ID=${TOPIC_ID}
-```
-Because of the large code package, you must use a high memory machine type. For this tutorial, use machine-type=n1-highcpu-8.
-
-5. Validate that the log data is published in the subscription:
-
-```
-gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1 >> raw_log.txt
-cat raw_log.txt
-```
-
-The output contains a subset of NetFlow log schema fields populated with random values, similar to the following:
-
-```
-{
- \"subscriberId\": \"mharper\",
- \"srcIP\": \"12.0.9.4",
- \"dstIP\": \"12.0.1.2\",
- \"srcPort\": 5000,
- \"dstPort\": 3000,
- \"txBytes\": 15,
- \"rxBytes\": 40,
- \"startTime\": 1570276550,
- \"endTime\": 1570276559,
- \"tcpFlag\": 0,
- \"protocolName\": \"tcp\",
- \"protocolNumber\": 0
-} 
 ```
 
 ## Data Transformation
 
+1. Discuss and Explain the Data Transformation Part of the Pipeline as below
+
 ![transformation_pipeline](diagram/data-transformation.png)
 
-1. Target Schema table cluster_model_data
-![target_schema](diagram/cluster_model_data.png)
+2. Why is Transforamtion Important? Because we need to Transform the Source Data format to Target Data Format which is required for our Anomaly Detection ML model creation
 
-2. Source Schema table raw_netflow_log_data
 ![raw_schema](diagram/raw_log_data_schema.png)
 
+
+
+![target_schema](diagram/cluster_model_data.png)
+
+
+
 ## Realtime outlier detection
-1. Outlier detection part of the pipeline
+1. Discuss and Explain the Outlier detection part of the pipeline
 
 ![outlier_data_dag](diagram/dag_2.png)
 
@@ -309,78 +380,24 @@ The output is similar to the following:
 +---------------+--------------+----------------------------+
 ```
 
+## Pipeline Monitoring
+
+1. Open The Dataflow Pipeline in GCP console and check the different Matrices monitoring the pipeline
+
+![Un-acknowledged messages](diagram/un-ack-msg.png)
+![cpu](diagram/cpu.png)
+![Latency](diagram/latency.png)
+
 ## DLP Integration
-In this section, you reuse the pipeline by passing an additional parameter to de-identify the international mobile subscriber identity (IMSI) number in the subscriber_id column.
+In this section, we reuse the pipeline by passing an additional parameter to de-identify the international mobile subscriber identity (IMSI) number in the subscriber_id column.
 
-1. In Cloud Shell, create a crypto key:
-
-```
-export TEK=$(openssl rand -base64 32); 
-echo ${TEK}
-```
-2. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
-
-```
-{
-  "deidentifyTemplate": {
-    "displayName": "Config to de-identify IMEI Number",
-    "description": "IMEI Number masking transformation",
-    "deidentifyConfig": {
-      "recordTransformations": {
-        "fieldTransformations": [
-          {
-            "fields": [
-              {
-                "name": "subscriber_id"
-              }
-            ],
-            "primitiveTransformation": {
-              "cryptoDeterministicConfig": {
-                "cryptoKey": {
-                  "unwrapped": {
-                    "key": "CRYPTO_KEY"
-                  }
-                },
-                "surrogateInfoType": {
-                  "name": "IMSI_TOKEN"
-                }
-              }
-            }
-          }
-        ]
-      }
-    }
-  },
-  "templateId": "dlp-deid-subid"
-}
-```
-
-3. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
-
-```
-export DLP_API_ROOT_URL="https://dlp.googleapis.com"
-export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
-export DEID_CONFIG="@deid_template.json"
-
-export ACCESS_TOKEN=$(gcloud auth print-access-token)
-curl -X POST -H "Content-Type: application/json" \
-   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-   "${DEID_TEMPLATE_API}" \
-   -d "${DEID_CONFIG}"
-```
-This creates a template with the following name in your Cloud project:
-
-```
-"name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
-```
-
-4. Stop the pipeline that you triggered in an earlier step:
+1. Stop the pipeline that you triggered in an earlier step:
 
 ```
 gcloud dataflow jobs list --filter="name=anomaly-detection" --state=active
 ```
 
-5. Trigger the anomaly detection pipeline using the Cloud DLP de-identify the template name:
+2. Trigger the anomaly detection pipeline using the Cloud DLP de-identify the template name:
 
 ```
 gcloud beta dataflow flex-template run "anomaly-detection-with-dlp" \
@@ -407,7 +424,9 @@ streaming=true,\
 deidTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid
 ```
 
-6. Query the outlier table to validate that the subscriber ID is successfully de-identified:
+This Pipeline setup may take some time. Until then discuss and explain #16-18 in the Setup process around the DLP Template generation that we are using in this pipeline setup. This template is also shown in the Security-Data Loss Prevention GCP Console as well.
+
+3. Query the outlier table to validate that the subscriber ID is successfully de-identified:
 
 ```
 export DLP_OUTLIER_TABLE_QUERY='SELECT subscriber_id,dst_subnet,transaction_time
@@ -419,7 +438,7 @@ bq query --nouse_legacy_sql $DLP_OUTLIER_TABLE_QUERY >> outlier_deid.txt
 cat outlier_deid.txt
 ```
 
-7. The output is similar to the following:
+4. The output is similar to the following:
 
 ```
 +---------------+--------------+----------------------------+
