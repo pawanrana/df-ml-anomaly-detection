@@ -14,10 +14,11 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
   * [Initial Setup](#initial-setup) 
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
-  * [Realtime outlier detection](#realtime-outlier-detection).   
-  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml).
-  * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
-  * [Looker Integration](#looker-integration). 
+  * [Realtime outlier detection](#realtime-outlier-detection)   
+  * [Pipeline Monitoring](#pipeline-monitoring)  
+  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
+  * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration) 
+  * [Visualisation](#looker-integration). 
 	
 
 ## Initial Setup
