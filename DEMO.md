@@ -10,7 +10,7 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
 ![ref_arch](diagram/ref_arch.png)
 
 ## Table of Contents  
-* [Anomaly detection in Netflow log]  
+* Anomaly detection in Netflow log  
   * [Automated Initial Setup](#automated-initial-setup) 
   * [Manual Initial Setup](#manual-initial-setup) 
   * [Raw Data Ingestion](#raw-data-ingestion)     
