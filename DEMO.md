@@ -15,7 +15,7 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection).   
-  * [Train & Normalize Data Using BQ ML](#train-normalize-data).
+  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml).
   * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration). 
   * [Looker Integration](#looker-integration). 
 	
@@ -433,6 +433,6 @@ cat outlier_deid.txt
 
 If the subscriber ID was de-identified, the subscriber_id column is no longer the original subscriber ID, which was 00000000000
 
-## Train Normalize Data
+## Create a K-means model using bq ml
 
 ## Looker Integration
