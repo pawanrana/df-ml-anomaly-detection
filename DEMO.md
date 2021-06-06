@@ -581,3 +581,5 @@ The result from this statement is a table of calculated normalized distances for
 ![model_training](diagram/bq-ml-kmeans-2.png)
 
 ## Looker Integration
+![looker_integration](diagram/anomaly-detection.png)
+![looker_integration](diagram/looker-subnet-search.png)
