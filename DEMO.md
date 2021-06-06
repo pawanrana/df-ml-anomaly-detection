@@ -582,4 +582,4 @@ The result from this statement is a table of calculated normalized distances for
 
 ## Looker Integration
 ![looker_integration](diagram/anomaly-detection.png)
-![looker_integration](diagram/looker-subnet-search.png)
+![looker_integration](diagram/Looker-subnet-search.png)
