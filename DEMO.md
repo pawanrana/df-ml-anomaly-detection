@@ -352,7 +352,7 @@ gcloud pubsub topics publish ${TOPIC_ID} --message \
 2. After a minute or so, validate that the Raw message is pushed to the topic and stored in the BigQuery table:
 
 ```
-export RAW_TABLE_QUERY='SELECT subscriber_id,srcIP,startTime
+export RAW_TABLE_QUERY='SELECT subscriberid,srcIP,startTime
 FROM `'${PROJECT_ID}.${DATASET_NAME}'.netflow_log_data`
 WHERE subscriber_id like "00123%"'
 
@@ -364,7 +364,7 @@ The output is similar to the following:
 
 ```
 +---------------+--------------+----------------------------+
-| subscriber_id |  srcIP       |   startTime.           |
+| subscriberid |  srcIP       |   startTime.           |
 +---------------+--------------+----------------------------+
 | 00123456789   | 12.0.1.1.    | 1570276550             |
 +---------------+--------------+----------------------------+
