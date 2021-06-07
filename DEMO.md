@@ -87,30 +87,40 @@ gcloud services enable dlp.googleapis.com bigquery.googleapis.com \
   pubsub.googleapis.com cloudbuild.googleapis.com
   ```
 
-5. Run following commands in Cloud Shell to create a Pub/Sub topic and a subscription
+5. Run following commands to set the Config Variables in Cloud Shell:
 
 ```
 export PROJECT_ID=$(gcloud config get-value project)
 export TOPIC_ID=demo-anomaly-detect
 export SUBSCRIPTION_ID=demo-anomaly-detect-sub
 export REGION=us-central1
+export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_ID} \
+  --format="value(PROJECT_NUMBER)")
+export DATASET_NAME=demoanalyticsds
+export DF_TEMPLATE_CONFIG_BUCKET=${PROJECT_ID}-anomaly-config
+export DLP_API_ROOT_URL="https://dlp.googleapis.com"
+export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
+export DEID_CONFIG="@deid_template.json"
+export ACCESS_TOKEN=$(gcloud auth print-access-token) 
+```
+
+6. Run following commands in Cloud Shell to create a Pub/Sub topic and a subscription:
+
+```
 gcloud pubsub topics create $TOPIC_ID
 gcloud pubsub subscriptions create $SUBSCRIPTION_ID --topic=$TOPIC_ID 
 ```
 
-6. Run following commands in Cloud Shell to clone the GitHub repository:
+7. Run following commands in Cloud Shell to clone the GitHub repository:
 
 ```
 git clone https://github.com/GoogleCloudPlatform/df-ml-anomaly-detection.git
 cd df-ml-anomaly-detection
 ```
 
-7. For Cloud Build To enable submitting a job automatically, grant Dataflow permissions to your Cloud Build service account:
+8. For Cloud Build To enable submitting a job automatically, grant Dataflow permissions to your Cloud Build service account:
 
 ```
-export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_ID} \
-  --format="value(PROJECT_NUMBER)")
-
 gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --member serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com \
   --role roles/dataflow.admin
@@ -124,7 +134,7 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
   --role roles/iam.serviceAccountUser
 ```
 
-8. Use Cloud Build to Start the source data generation :
+9. Use Cloud Build to Start the source data generation :
 
 ```
 gcloud builds submit . --machine-type=n1-highcpu-8 \
@@ -132,7 +142,7 @@ gcloud builds submit . --machine-type=n1-highcpu-8 \
   --substitutions _TOPIC_ID=${TOPIC_ID}
 ```
 
-9. Validate that the log data is published in the subscription:
+10. Validate that the log data is published in the subscription:
 
 ```
 gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1 >> raw_log.txt
@@ -157,10 +167,9 @@ The output contains a subset of NetFlow log schema fields populated with random 
 } 
 ```
 
-10. In Cloud Shell, create a BigQuery dataset and necessary Tables
+11. In Cloud Shell, create a BigQuery dataset and necessary Tables
 
 ```
-export DATASET_NAME=demoanalyticsds
 bq --location=US mk -d \
   --description "Network Logs Dataset" \
   ${DATASET_NAME}
@@ -195,7 +204,7 @@ outlier_data: an outlier table that stores anomalies.
 
 normalized_centroid_data: a table pre-populated with normalized data created from a sample model. 
 
-11. Load the Centroid Sample data into Centroid Table
+12. Load the Centroid Sample data into Centroid Table
 
 ```
 bq load \
@@ -204,17 +213,16 @@ bq load \
   gs://df-ml-anomaly-detection-mock-data/sample_model/normalized_centroid_data.json src/main/resources/normalized_centroid_data_schema.json
 ```
 
-12. In Cloud Shell, create a Docker image in your project:
+13. In Cloud Shell, create a Docker image in your project:
 
 ```
 gcloud auth configure-docker
 gradle jib --image=gcr.io/${PROJECT_ID}/df-ml-anomaly-detection:latest -DmainClass=com.google.solutions.df.log.aggregations.SecureLogAggregationPipeline
 ```
 
-13. Upload the Flex Template configuration file to the Cloud Storage bucket that you created earlier:
+14. Upload the Flex Template configuration file to the Cloud Storage bucket that you created earlier:
 
 ```
-export DF_TEMPLATE_CONFIG_BUCKET=${PROJECT_ID}-anomaly-config
 gsutil mb -c standard -l ${REGION} gs://${DF_TEMPLATE_CONFIG_BUCKET}
 cat << EOF | gsutil cp - gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json
 {"image": "gcr.io/${PROJECT_ID}/df-ml-anomaly-detection",
@@ -223,14 +231,14 @@ cat << EOF | gsutil cp - gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secu
 EOF
 ```
 
-14. Create a SQL file to pass the normalized model data as a pipeline parameter:
+15. Create a SQL file to pass the normalized model data as a pipeline parameter:
 
 ```
 echo "SELECT * FROM \`${PROJECT_ID}.${DATASET_NAME}.normalized_centroid_data\`" > normalized_cluster_data.sql
 gsutil cp normalized_cluster_data.sql gs://${DF_TEMPLATE_CONFIG_BUCKET}/
 ```
 
-15. Create the end to end anomaly detection pipeline:
+16. Create the end to end anomaly detection pipeline:
 
 ```
 gcloud beta dataflow flex-template run "anomaly-detection" \
@@ -257,14 +265,14 @@ streaming=true,\
 logTableSpec=${PROJECT_ID}:${DATASET_NAME}.netflow_log_data
 ```
 
-16. In Cloud Shell, create a crypto key:
+17. In Cloud Shell, create a crypto key:
 
 ```
 export TEK=$(openssl rand -base64 32); 
 echo ${TEK}
 ```
 
-17. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
+18. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
 
 ```
 {
@@ -301,14 +309,9 @@ echo ${TEK}
 }
 ```
 
-18. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
+19. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
 
 ```
-export DLP_API_ROOT_URL="https://dlp.googleapis.com"
-export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
-export DEID_CONFIG="@deid_template.json"
-
-export ACCESS_TOKEN=$(gcloud auth print-access-token)
 curl -X POST -H "Content-Type: application/json" \
    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
    "${DEID_TEMPLATE_API}" \
@@ -320,7 +323,7 @@ This creates a template with the following name in your Cloud project:
 "name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
 ```
 
-19. In the Cloud Console, go to the Dataflow page.
+20. In the Cloud Console, go to the Dataflow page.
 
 Click the `netflow-anomaly-detection` job. A representation of the Dataflow pipeline that's similar to the following appears:
 ![log_data_dag](diagram/with_log_data_dag.png)
