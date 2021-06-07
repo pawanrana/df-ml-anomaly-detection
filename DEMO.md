@@ -446,7 +446,7 @@ In this section, we reuse the pipeline by passing an additional parameter to de-
 1. Stop the pipeline that you triggered in an earlier step:
 
 ```
-gcloud dataflow jobs list --filter="name=anomaly-detection" --state=active
+gcloud dataflow jobs list --filter="name=anomaly-detection" --status=active
 ```
 
 2. Trigger the anomaly detection pipeline using the Cloud DLP de-identify the template name:
