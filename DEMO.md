@@ -5,14 +5,13 @@ This tutorial is intended for data engineers who intends to understand how to ap
 
 We also Intend to Demo the ML building capabilities of the BigQuery ML to data scientists and Visualization capabilities of Looker for the data analysts.    
 
-## Reference Architecture (Recreate the diagram below to make to easy to understand)
+## Demo Setup steps
 
-![ref_arch](diagram/ref_arch.png)
-
-## Table of Contents  
-* Anomaly detection in Netflow log  
   * [Automated Initial Setup](#automated-initial-setup) 
   * [Manual Initial Setup](#manual-initial-setup) 
+
+## Demo Guide  
+  * [Demo Reference Architecture](#demo-reference-architecture)
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection)   
@@ -325,6 +324,10 @@ This creates a template with the following name in your Cloud project:
 
 Click the `netflow-anomaly-detection` job. A representation of the Dataflow pipeline that's similar to the following appears:
 ![log_data_dag](diagram/with_log_data_dag.png)
+
+## Demo Reference Architecture
+
+![ref_arch](diagram/ref_arch.png)
 
 ## Raw Data Ingestion
 
