@@ -483,8 +483,8 @@ This Pipeline setup may take some time. Until then discuss and explain #16-18 in
 ```
 gcloud pubsub topics publish ${TOPIC_ID} --message \
 "{\"subscriberId\": \"00000000000000000\",  \
-\"srcIP\": \"12.0.9.4\", \
-\"dstIP\": \"12.0.1.3\", \
+\"srcIP\": \"12.0.9.5\", \
+\"dstIP\": \"12.0.1.6\", \
 \"srcPort\": 5000, \
 \"dstPort\": 3000, \
 \"txBytes\": 150000, \
