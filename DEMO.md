@@ -160,7 +160,7 @@ The output contains a subset of NetFlow log schema fields populated with random 
 10. In Cloud Shell, create a BigQuery dataset and necessary Tables
 
 ```
-export DATASET_NAME=demoanomalydetect1
+export DATASET_NAME=${PROJECT_ID}
 bq --location=US mk -d \
   --description "Network Logs Dataset" \
   ${DATASET_NAME}
