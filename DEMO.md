@@ -3,7 +3,20 @@ This tutorial shows you how to build a secure ML-based network anomaly detection
 
 This tutorial is intended for data engineers who intends to understand how to approach building and End to End Analytics Solution using Google Cloud Technologies from Data Ingestion (both Batch and Streaming) to Transformation (Aggregations, Feature Extraction, Tokenization using PII data de-identification), Realtime ML based Prediction with focus on Monitoring and Health management capabilities of the End to End Solution.
 
-We also Intend to Demo the ML building capabilities of the BigQuery ML to data scientists and Visualization capabilities of Looker for the data analysts.    
+We also Intend to Demo the ML building capabilities of the BigQuery ML to data scientists and Visualization capabilities of Looker for the data analysts.
+This tutorial uses the following billable components of Google Cloud:
+
+[BigQuery ML](https://cloud.google.com/bigquery-ml/pricing)
+
+[Cloud Storage](https://cloud.google.com/storage/pricing)
+
+[Dataflow](https://cloud.google.com/dataflow/pricing)
+
+[Cloud Data Loss Prevention API](https://cloud.google.com/dlp/pricing)
+
+[Pub/Sub](https://cloud.google.com/pubsub/pricing)
+
+[Cloud Build](https://cloud.google.com/build/pricing)
 
 ## Find the Outliers
 
