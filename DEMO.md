@@ -478,7 +478,25 @@ deidTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid
 
 This Pipeline setup may take some time. Until then discuss and explain #16-18 in the Setup process around the DLP Template generation that we are using in this pipeline setup. This template is also shown in the Security-Data Loss Prevention GCP Console as well.
 
-3. Query the outlier table to validate that the subscriber ID is successfully de-identified:
+3. In Cloud Shell, publish the following message
+
+```
+gcloud pubsub topics publish ${TOPIC_ID} --message \
+"{\"subscriberId\": \"00000000000000000\",  \
+\"srcIP\": \"12.0.9.4\", \
+\"dstIP\": \"12.0.1.3\", \
+\"srcPort\": 5000, \
+\"dstPort\": 3000, \
+\"txBytes\": 150000, \
+\"rxBytes\": 40000, \
+\"startTime\": 1570276550, \
+\"endTime\": 1570276550, \
+\"tcpFlag\": 0, \
+\"protocolName\": \"tcp\", \
+\"protocolNumber\": 0}"
+```
+
+4. Query the outlier table to validate that the subscriber ID is successfully de-identified:
 
 ```
 export DLP_OUTLIER_TABLE_QUERY='SELECT subscriber_id,dst_subnet,transaction_time
@@ -490,7 +508,7 @@ bq query --nouse_legacy_sql $DLP_OUTLIER_TABLE_QUERY >> outlier_deid.txt
 cat outlier_deid.txt
 ```
 
-4. The output is similar to the following:
+5. The output is similar to the following:
 
 ```
 +---------------+--------------+----------------------------+
