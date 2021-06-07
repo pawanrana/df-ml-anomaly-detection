@@ -16,8 +16,8 @@ We also Intend to Demo the ML building capabilities of the BigQuery ML to data s
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection)   
   * [Pipeline Monitoring](#pipeline-monitoring)  
-  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration) 
+  * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Visualisation](#looker-integration). 
 	
 
