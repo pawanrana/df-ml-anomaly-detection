@@ -434,7 +434,7 @@ The output is similar to the following:
 
 ## Pipeline Monitoring
 
-1. Open The Dataflow Pipeline in GCP console and check the different Matrices monitoring the pipeline
+1. Open The Pub/Sub subscriptions and Dataflow Pipeline in GCP console and check the different Matrices monitoring the pipeline
 
 ![Un-acknowledged messages](diagram/un-ack-msg.png)
 ![cpu](diagram/cpu.png)
