@@ -354,7 +354,7 @@ gcloud pubsub topics publish ${TOPIC_ID} --message \
 ```
 export RAW_TABLE_QUERY='SELECT subscriberid,srcIP,startTime
 FROM `'${PROJECT_ID}.${DATASET_NAME}'.netflow_log_data`
-WHERE subscriber_id like "00123%"'
+WHERE subscriberid like "00123%"'
 
 bq query --nouse_legacy_sql $RAW_TABLE_QUERY >> raw_orig.txt
 cat raw_orig.txt
