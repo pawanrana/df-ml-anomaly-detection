@@ -6,15 +6,16 @@ This tutorial is intended for data engineers who intends to understand how to ap
 We also Intend to Demo the ML building capabilities of the BigQuery ML to data scientists and Visualization capabilities of Looker for the data analysts.
 This tutorial uses the following billable components of Google Cloud:
 
-[BigQuery ML](https://cloud.google.com/bigquery-ml/pricing)
-
-[Cloud Storage](https://cloud.google.com/storage/pricing)
-
-[Dataflow](https://cloud.google.com/dataflow/pricing)
-
-[Cloud Data Loss Prevention API](https://cloud.google.com/dlp/pricing)
 
 [Pub/Sub](https://cloud.google.com/pubsub/pricing)
+
+[Cloud Storage](https://cloud.google.com/storage/pricing) 
+
+[Dataflow](https://cloud.google.com/dataflow/pricing) 
+
+[Cloud Data Loss Prevention API](https://cloud.google.com/dlp/pricing) 
+
+[BigQuery ML](https://cloud.google.com/bigquery-ml/pricing)
 
 [Cloud Build](https://cloud.google.com/build/pricing)
 
