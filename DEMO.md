@@ -5,6 +5,15 @@ This tutorial is intended for data engineers who intends to understand how to ap
 
 We also Intend to Demo the ML building capabilities of the BigQuery ML to data scientists and Visualization capabilities of Looker for the data analysts.    
 
+## Find the Outliers
+
+1. Find the nearest distance of input feature from the centroid.  
+2. Calculate STD DEV between input and centroid vectors 
+3. Find the Z Score (difference between a value in the sample and the mean, and divide it by the standard deviation)
+4. A score of 2 (2 STD DEV above the mean is an OUTLIER). 
+
+![outlier](diagram/outlier.png)
+
 ## Demo Setup steps
 
   * [Automated Initial Setup](#automated-initial-setup) 
