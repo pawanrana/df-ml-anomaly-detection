@@ -168,8 +168,7 @@ gcloud builds submit . --machine-type=n1-highcpu-8 \
 10. Validate that the log data is published in the subscription:
 
 ```
-gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1 >> raw_log.txt
-cat raw_log.txt
+gcloud pubsub subscriptions pull ${SUBSCRIPTION_ID} --auto-ack --limit 1
 ```
 The output contains a subset of NetFlow log schema fields populated with random values, similar to the following:
 
