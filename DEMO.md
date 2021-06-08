@@ -629,3 +629,15 @@ The result from this statement is a table of calculated normalized distances for
 ## Looker Integration
 ![looker_integration](diagram/anomaly-detection.png)
 ![looker_integration](diagram/Looker-subnet-search.png)
+
+## Reidentification
+
+```
+export REIDENTIFICATION_TOPIC=demo-reidentify
+export REIDENTIFY_SUBSCRIPTION_ID=demo-reidentify-sub
+gcloud pubsub topics create $REIDENTIFICATION_TOPIC
+gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$TOPIC_ID
+
+gradle run -DmainClass=com.google.swarm.sqlserver.migration.BQReidentificationPipeline -Pargs="--project=$(gcloud config get-value project) --runner=DirectRunner --deidentifyTemplateName=projects/${PROJECT_ID}/locations/global/deidentifyTemplates/dlp-deid-subid --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --tempLocation=gs://${PROJECT_ID}-anomaly-config/temp"
+```
+
