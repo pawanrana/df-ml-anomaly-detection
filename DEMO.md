@@ -261,41 +261,14 @@ echo "SELECT * FROM \`${PROJECT_ID}.${DATASET_NAME}.normalized_centroid_data\`" 
 gsutil cp normalized_cluster_data.sql gs://${DF_TEMPLATE_CONFIG_BUCKET}/
 ```
 
-16. Create the end to end anomaly detection pipeline:
-
-```
-gcloud beta dataflow flex-template run "anomaly-detection" \
---project=${PROJECT_ID} \
---region=${REGION} \
---template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
---parameters=autoscalingAlgorithm="NONE",\
-numWorkers=5,\
-maxNumWorkers=5,\
-workerMachineType=n1-highmem-4,\
-subscriberId=projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_ID},\
-tableSpec=${PROJECT_ID}:${DATASET_NAME}.cluster_model_data,\
-batchFrequency=2,\
-customGcsTempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
-tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
-clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
-outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
-inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
-workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/us-central1-b/diskTypes/pd-ssd,\
-diskSizeGb=5,\
-windowInterval=10,\
-writeMethod=FILE_LOADS,\
-streaming=true,\
-logTableSpec=${PROJECT_ID}:${DATASET_NAME}.netflow_log_data
-```
-
-17. In Cloud Shell, create a crypto key:
+16. In Cloud Shell, create a crypto key:
 
 ```
 export TEK=$(openssl rand -base64 32); 
 echo ${TEK}
 ```
 
-18. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
+17. Replace the CRYPTO_KEY text below with the TEK value generated above and put it in the deid_template.json file in CLoud Shell.
 
 ```
 {
@@ -332,7 +305,7 @@ echo ${TEK}
 }
 ```
 
-19. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
+18. In the Cloud Shell terminal, create a Cloud DLP de-identify template:
 
 ```
 curl -X POST -H "Content-Type: application/json" \
@@ -344,6 +317,34 @@ This creates a template with the following name in your Cloud project:
 
 ```
 "name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
+```
+
+19. Create the end to end anomaly detection pipeline:
+
+```
+gcloud beta dataflow flex-template run "anomaly-detection" \
+--project=${PROJECT_ID} \
+--region=${REGION} \
+--template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
+--parameters=autoscalingAlgorithm="NONE",\
+numWorkers=5,\
+maxNumWorkers=5,\
+workerMachineType=n1-highmem-4,\
+subscriberId=projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_ID},\
+tableSpec=${PROJECT_ID}:${DATASET_NAME}.cluster_model_data,\
+batchFrequency=2,\
+customGcsTempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
+tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
+clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
+outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
+inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
+workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/us-central1-b/diskTypes/pd-ssd,\
+diskSizeGb=5,\
+windowInterval=10,\
+writeMethod=FILE_LOADS,\
+streaming=true,\
+logTableSpec=${PROJECT_ID}:${DATASET_NAME}.netflow_log_data,\
+deidTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid
 ```
 
 20. In the Cloud Console, go to the Dataflow page.
