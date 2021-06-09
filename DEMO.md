@@ -337,7 +337,7 @@ tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
 clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
 outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
 inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
-workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/us-central1-b/diskTypes/pd-ssd,\
+workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/${REGION}-b/diskTypes/pd-ssd,\
 diskSizeGb=5,\
 windowInterval=10,\
 writeMethod=FILE_LOADS,\
@@ -477,7 +477,7 @@ gcloud dataflow jobs list --filter="name=anomaly-detection" --status=active
 ```
 gcloud beta dataflow flex-template run "anomaly-detection-with-dlp" \
 --project=${PROJECT_ID} \
---region=us-central1 \
+--region=${REGION} \
 --template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
 --parameters=autoscalingAlgorithm="NONE",\
 numWorkers=5,\
@@ -491,7 +491,7 @@ tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
 clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
 outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
 inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
-workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/us-central1-b/diskTypes/pd-ssd,\
+workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/${REGION}-b/diskTypes/pd-ssd,\
 diskSizeGb=5,\
 windowInterval=10,\
 writeMethod=FILE_LOADS,\
