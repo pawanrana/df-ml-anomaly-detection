@@ -37,8 +37,7 @@ This tutorial uses the following billable components of Google Cloud:
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection)   
-  * [Pipeline Monitoring](#pipeline-monitoring)  
-  * [Sensitive data (IMSI) de-identification using Cloud DLP](#dlp-integration) 
+  * [Pipeline Monitoring](#pipeline-monitoring)   
   * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Visualisation](#looker-integration). 
 	
