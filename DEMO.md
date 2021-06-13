@@ -30,9 +30,8 @@ This tutorial uses the following billable components of Google Cloud:
 
 ## Demo Setup steps
 
-  * [Automated Initial Setup](#automated-initial-setup) 
-  * [Manual Initial Setup](#manual-initial-setup) 
-
+  * [Initial Setup](#initial-setup) 
+ 
 ## Demo Guide  
   * [Demo Reference Architecture](#demo-reference-architecture)
   * [Raw Data Ingestion](#raw-data-ingestion)     
