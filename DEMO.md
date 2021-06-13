@@ -37,6 +37,7 @@ This tutorial uses the following billable components of Google Cloud:
   * [Raw Data Ingestion](#raw-data-ingestion)     
   * [Data Transformation](#data-transformation) 
   * [Realtime outlier detection](#realtime-outlier-detection)   
+  * [Re-Identification of Sensitive Data](#reidentification)
   * [Pipeline Monitoring](#pipeline-monitoring)   
   * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Visualisation](#looker-integration). 
@@ -420,6 +421,25 @@ The output is similar to the following:
 +---------------+--------------+----------------------------+
 ```
 
+## Reidentification
+
+PREREQUISITE - Please make sure you follow Tutorial https://cloud.google.com/architecture/de-identification-re-identification-pii-using-cloud-dlp to setup the building blocks for Re-Identification to work properly
+
+
+1. Run the Re-Identification Batch Pipeline
+
+```
+cd ~/dlp-dataflow-deidentification
+gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:${DATASET_NAME}.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
+```
+
+2. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
+
+```
+gcloud pubsub subscriptions pull ${REIDENTIFY_SUBSCRIPTION_ID} \
+    --auto-ack --limit 10 --project ${PROJECT_ID}
+```
+
 ## Pipeline Monitoring
 
 1. Open The Pub/Sub subscriptions and Dataflow Pipeline in GCP console and check the different Matrices monitoring the pipeline
@@ -516,22 +536,4 @@ The result from this statement is a table of calculated normalized distances for
 ![looker_integration](diagram/anomaly-detection.png)
 ![looker_integration](diagram/Looker-subnet-search.png)
 
-## Reidentification
-
-PREREQUISITE - Please make sure you follow Tutorial https://cloud.google.com/architecture/de-identification-re-identification-pii-using-cloud-dlp to setup the building blocks for Re-Identification to work properly
-
-
-1. Run the Re-Identification Batch Pipeline
-
-```
-cd ~/dlp-dataflow-deidentification
-gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:${DATASET_NAME}.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
-```
-
-2. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
-
-```
-gcloud pubsub subscriptions pull ${REIDENTIFY_SUBSCRIPTION_ID} \
-    --auto-ack --limit 10 --project ${PROJECT_ID}
-```
 
