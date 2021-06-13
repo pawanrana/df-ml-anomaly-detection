@@ -43,52 +43,8 @@ This tutorial uses the following billable components of Google Cloud:
   * [Train & Normalize Data Using BQ ML](#create-a-k-means-model-using-bq-ml)
   * [Visualisation](#looker-integration). 
 	
+## Initial Setup 
 
-## Automated Initial Setup
-(Try and Correct this Tomorrow)
-1. Enable APIs
-
-```
-gcloud services enable storage_component
-gcloud services enable dataflow
-gcloud services enable cloudbuild.googleapis.com
-gcloud config set project <project_id>
-```
-
-2. Access to Cloud Build Service Account
-
-```
-export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_ID} --format="value(PROJECT_NUMBER)") 
-gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/editor
-gcloud projects add-iam-policy-binding ${PROJECT_ID} --member serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com --role roles/storage.objectAdmin
-```
-
-3. Export Required Parameters
-
-```
-export DATASET=<var>bq-dataset-name</var>
-export SUBSCRIPTION_ID=<var>subscription_id</var>
-export TOPIC_ID=<var>topic_id</var>
-export DATA_STORAGE_BUCKET=${PROJECT_ID}-<var>data-storage-bucket</var>
-export DEID_TEMPLATE=projects/{id}/deidentifyTemplates/{template_id}
-export BATCH_SIZE = 350000
-```
-
-Batch Size is in bytes and max allowed is less than 520KB/payload
-
-4. Trigger Cloud Build Script
-
-```
-gcloud builds submit scripts/. --config scripts/cloud-build-demo.yaml  --substitutions \
-_DATASET=$DATASET,\
-_DATA_STORAGE_BUCKET=$DATA_STORAGE_BUCKET,\
-_SUBSCRIPTION_ID=${SUBSCRIPTION_ID},\
-_TOPIC_ID=${TOPIC_ID},\
-_API_KEY=$(gcloud auth print-access-token)
-```
-
-## Manual Initial Setup 
-(Optional)
 1. In the Google Cloud Console, on the project selector page, select or create a Google Cloud project.
 
 Note: If you don't plan to keep the resources that you create in this procedure, create a project instead of selecting an existing project. After you finish these steps, you can delete the project, removing all resources associated with the project.
@@ -449,9 +405,9 @@ The output is similar to the following:
 
 ```
 +---------------+--------------+----------------------------+
-| subscriber_id |  dst_subnet  |   transaction_time |
+| subscriber_id |  dst_subnet  |      transaction_time      |
 +---------------+--------------+----------------------------+
-| 00000000000| 12.0.1.3/22 | 2020-07-09 21:29:36.571000 |
+| IMSI_TOKEN(64):AcZD2U2v//QiKkGzbFCm29pv5cqVi3Db09Z6CNt5cQSevBKRQvgdDfacPQIRY1dc| 12.0.1.3/22 | 2020-07-09 21:29:36.571000 |
 +---------------+--------------+----------------------------+
 ```
 
@@ -463,85 +419,6 @@ The output is similar to the following:
 ![cpu](diagram/cpu.png)
 ![Latency](diagram/latency.png)
 
-## DLP Integration
-In this section, we reuse the pipeline by passing an additional parameter to de-identify the international mobile subscriber identity (IMSI) number in the subscriber_id column.
-
-1. Stop the pipeline that you triggered in an earlier step:
-
-```
-gcloud dataflow jobs list --filter="name=anomaly-detection" --status=active
-```
-
-2. Trigger the anomaly detection pipeline using the Cloud DLP de-identify the template name:
-
-```
-gcloud beta dataflow flex-template run "anomaly-detection-with-dlp" \
---project=${PROJECT_ID} \
---region=${REGION} \
---template-file-gcs-location=gs://${DF_TEMPLATE_CONFIG_BUCKET}/dynamic_template_secure_log_aggr_template.json \
---parameters=autoscalingAlgorithm="NONE",\
-numWorkers=5,\
-maxNumWorkers=5,\
-workerMachineType=n1-highmem-4,\
-subscriberId=projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_ID},\
-tableSpec=${PROJECT_ID}:${DATASET_NAME}.cluster_model_data,\
-batchFrequency=2,\
-customGcsTempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
-tempLocation=gs://${DF_TEMPLATE_CONFIG_BUCKET}/temp,\
-clusterQuery=gs://${DF_TEMPLATE_CONFIG_BUCKET}/normalized_cluster_data.sql,\
-outlierTableSpec=${PROJECT_ID}:${DATASET_NAME}.outlier_data,\
-inputFilePattern=gs://df-ml-anomaly-detection-mock-data/flow_log*.json,\
-workerDiskType=compute.googleapis.com/projects/${PROJECT_ID}/zones/${REGION}-b/diskTypes/pd-ssd,\
-diskSizeGb=5,\
-windowInterval=10,\
-writeMethod=FILE_LOADS,\
-streaming=true,\
-deidTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid
-```
-
-This Pipeline setup may take some time. Until then discuss and explain #16-18 in the Setup process around the DLP Template generation that we are using in this pipeline setup. This template is also shown in the Security-Data Loss Prevention GCP Console as well.
-
-3. In Cloud Shell, publish the following message
-
-```
-gcloud pubsub topics publish ${TOPIC_ID} --message \
-"{\"subscriberId\": \"00000000000000000\",  \
-\"srcIP\": \"12.0.9.5\", \
-\"dstIP\": \"12.0.1.6\", \
-\"srcPort\": 5000, \
-\"dstPort\": 3000, \
-\"txBytes\": 150000, \
-\"rxBytes\": 40000, \
-\"startTime\": 1570276550, \
-\"endTime\": 1570276550, \
-\"tcpFlag\": 0, \
-\"protocolName\": \"tcp\", \
-\"protocolNumber\": 0}"
-```
-
-4. Query the outlier table to validate that the subscriber ID is successfully de-identified:
-
-```
-export DLP_OUTLIER_TABLE_QUERY='SELECT subscriber_id,dst_subnet,transaction_time
-FROM `'${PROJECT_ID}.${DATASET_NAME}'.outlier_data`
-ORDER BY transaction_time DESC'
-
-bq query --nouse_legacy_sql $DLP_OUTLIER_TABLE_QUERY >> outlier_deid.txt
-
-cat outlier_deid.txt
-```
-
-5. The output is similar to the following:
-
-```
-+---------------+--------------+----------------------------+
-| subscriber_id |  dst_subnet  |      transaction_time      |
-+---------------+--------------+----------------------------+
-| IMSI_TOKEN(64):AcZD2U2v//QiKkGzbFCm29pv5cqVi3Db09Z6CNt5cQSevBKRQvgdDfacPQIRY1dc| 12.0.1.3/22 | 2020-07-09 21:29:36.571000 |
-+---------------+--------------+----------------------------+
-```
-
-If the subscriber ID was de-identified, the subscriber_id column is no longer the original subscriber ID, which was 00000000000
 
 ## Create a K-means model using bq ml
 
