@@ -78,7 +78,12 @@ export DF_TEMPLATE_CONFIG_BUCKET=${PROJECT_ID}-anomaly-config
 export DLP_API_ROOT_URL="https://dlp.googleapis.com"
 export DEID_TEMPLATE_API="${DLP_API_ROOT_URL}/v2/projects/${PROJECT_ID}/deidentifyTemplates"
 export DEID_CONFIG="@deid_template.json"
-export ACCESS_TOKEN=$(gcloud auth print-access-token) 
+export ACCESS_TOKEN=$(gcloud auth print-access-token)
+export REIDENTIFICATION_TOPIC=demo-reidentify
+export REIDENTIFY_SUBSCRIPTION_ID=demo-reidentify-sub
+export DATA_STORAGE_BUCKET=${PROJECT_ID}-data-storage-bucket
+export DATAFLOW_TEMP_BUCKET=${PROJECT_ID}-dataflow-temp-bucket
+export QUERY='SELECT subscriber_id FROM `bamboo-volt-316313.demoanalyticsds.outlier_data` LIMIT 10'
 ```
 
 6. Run following commands in Cloud Shell to create a Pub/Sub topic and a subscription:
@@ -86,6 +91,14 @@ export ACCESS_TOKEN=$(gcloud auth print-access-token)
 ```
 gcloud pubsub topics create $TOPIC_ID
 gcloud pubsub subscriptions create $SUBSCRIPTION_ID --topic=$TOPIC_ID 
+gcloud pubsub topics create $REIDENTIFICATION_TOPIC
+gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$REIDENTIFICATION_TOPIC
+gsutil mb -c standard -l ${REGION} gs://${DATA_STORAGE_BUCKET}
+gsutil mb -c standard -l ${REGION} gs://${DATAFLOW_TEMP_BUCKET}
+
+cat << EOF | gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
+${QUERY}
+EOF
 ```
 
 7. Run following commands in Cloud Shell to clone the GitHub repository:
@@ -509,39 +522,15 @@ The result from this statement is a table of calculated normalized distances for
 
 PREREQUISITE - Please make sure you follow Tutorial https://cloud.google.com/architecture/de-identification-re-identification-pii-using-cloud-dlp to setup the building blocks for Re-Identification to work properly
 
-1. Set the Config Variables required for Re-Identification
+
+1. Run the Re-Identification Batch Pipeline
+
 ```
 cd ~/dlp-dataflow-deidentification
-export REIDENTIFICATION_TOPIC=demo-reidentify
-export REIDENTIFY_SUBSCRIPTION_ID=demo-reidentify-sub
-gcloud pubsub topics create $REIDENTIFICATION_TOPIC
-gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$REIDENTIFICATION_TOPIC
-export DATA_STORAGE_BUCKET=${PROJECT_ID}-data-storage-bucket
-export DATAFLOW_TEMP_BUCKET=${PROJECT_ID}-dataflow-temp-bucket
-gsutil mb -c standard -l ${REGION} gs://${DATA_STORAGE_BUCKET}
-gsutil mb -c standard -l ${REGION} gs://${DATAFLOW_TEMP_BUCKET}
-```
-
-2. Export the Re-Identification Query
-
-```
-export QUERY='SELECT subscriber_id FROM `bamboo-volt-316313.demoanalyticsds.outlier_data` LIMIT 10'
-```
-4. Upload the Re-Identification Query to Bucket
-
-```
-cat << EOF | gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
-${QUERY}
-EOF
-```
-
-5. Run the Re-Identification Batch Pipeline
-
-```
 gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:demoanalyticsds.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
 ```
 
-3. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
+2. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
 
 ```
 gcloud pubsub subscriptions pull ${REIDENTIFY_SUBSCRIPTION_ID} \
