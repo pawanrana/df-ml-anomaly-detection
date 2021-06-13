@@ -632,12 +632,44 @@ The result from this statement is a table of calculated normalized distances for
 
 ## Reidentification
 
+PREREQUISITE - Please make sure you follow Tutorial https://cloud.google.com/architecture/de-identification-re-identification-pii-using-cloud-dlp to setup the building blocks for Re-Identification to work properly
+
+1. Set the Config Variables required for Re-Identification
 ```
+cd ~/dlp-dataflow-deidentification
 export REIDENTIFICATION_TOPIC=demo-reidentify
 export REIDENTIFY_SUBSCRIPTION_ID=demo-reidentify-sub
 gcloud pubsub topics create $REIDENTIFICATION_TOPIC
-gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$TOPIC_ID
+gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$REIDENTIFICATION_TOPIC
+export DATA_STORAGE_BUCKET=${PROJECT_ID}-data-storage-bucket
+export DATAFLOW_TEMP_BUCKET=${PROJECT_ID}-dataflow-temp-bucket
+gsutil mb -c standard -l ${REGION} gs://${DATA_STORAGE_BUCKET}
+gsutil mb -c standard -l ${REGION} gs://${DATAFLOW_TEMP_BUCKET}
+```
 
-gradle run -DmainClass=com.google.swarm.sqlserver.migration.BQReidentificationPipeline -Pargs="--project=$(gcloud config get-value project) --runner=DirectRunner --deidentifyTemplateName=projects/${PROJECT_ID}/locations/global/deidentifyTemplates/dlp-deid-subid --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --tempLocation=gs://${PROJECT_ID}-anomaly-config/temp"
+2. Export the Re-Identification Query
+
+```
+export QUERY='SELECT subscriber_id FROM `bamboo-volt-316313.demoanalyticsds.outlier_data` LIMIT 10'
+```
+4. Upload the Re-Identification Query to Bucket
+
+```
+cat << EOF | gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
+${QUERY}
+EOF
+```
+
+5. Run the Re-Identification Batch Pipeline
+
+```
+gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:demoanalyticsds.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
+```
+
+3. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
+
+```
+gcloud pubsub subscriptions pull ${REIDENTIFY_SUBSCRIPTION_ID} \
+    --auto-ack --limit 10 --project ${PROJECT_ID}
 ```
 
