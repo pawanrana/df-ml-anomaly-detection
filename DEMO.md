@@ -525,7 +525,7 @@ PREREQUISITE - Please make sure you follow Tutorial https://cloud.google.com/arc
 
 ```
 cd ~/dlp-dataflow-deidentification
-gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:demoanalyticsds.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
+gradle run -DmainClass=com.google.swarm.tokenization.DLPTextToBigQueryStreamingV2 -Pargs="--project=${PROJECT_ID} --region=${REGION} --streaming --enableStreamingEngine --tempLocation=gs://${DATAFLOW_TEMP_BUCKET}/temp --numWorkers=5 --maxNumWorkers=10 --runner=DataflowRunner --tableRef=${PROJECT_ID}:${DATASET_NAME}.outlier_data --dataset=${DATASET_NAME} --topic=projects/${PROJECT_ID}/topics/${REIDENTIFICATION_TOPIC} --autoscalingAlgorithm=THROUGHPUT_BASED --workerMachineType=n1-highmem-4 --deidentifyTemplateName=projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-subid --DLPMethod=REID --keyRange=1024 --queryPath=gs://${DATA_STORAGE_BUCKET}/reid_query.sql"
 ```
 
 2. Once the Pipeline Completes, fetch the Re-Identified messages from the Pub-Sub topic.
