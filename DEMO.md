@@ -83,7 +83,7 @@ export REIDENTIFICATION_TOPIC=demo-reidentify
 export REIDENTIFY_SUBSCRIPTION_ID=demo-reidentify-sub
 export DATA_STORAGE_BUCKET=${PROJECT_ID}-data-storage-bucket
 export DATAFLOW_TEMP_BUCKET=${PROJECT_ID}-dataflow-temp-bucket
-export QUERY='SELECT subscriber_id FROM `bamboo-volt-316313.demoanalyticsds.outlier_data` LIMIT 10'
+echo "SELECT subscriber_id FROM \`${PROJECT_ID}.${DATASET_NAME}.outlier_data\` LIMIT 10" > reid_query.sql
 ```
 
 6. Run following commands in Cloud Shell to create a Pub/Sub topic and a subscription:
@@ -96,9 +96,7 @@ gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$REIDENTI
 gsutil mb -c standard -l ${REGION} gs://${DATA_STORAGE_BUCKET}
 gsutil mb -c standard -l ${REGION} gs://${DATAFLOW_TEMP_BUCKET}
 
-cat << EOF | gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
-${QUERY}
-EOF
+gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
 ```
 
 7. Run following commands in Cloud Shell to clone the GitHub repository:
