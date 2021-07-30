@@ -283,6 +283,7 @@ This creates a template with the following name in your Cloud project:
 ```
 "name": "projects/${PROJECT_ID}/deidentifyTemplates/dlp-deid-sub-id"
 ```
+Check for the template at https://pantheon.corp.google.com/security/dlp/landing/configuration/templates/deidentify?project=pawanrana-ce-demos
 
 19. Create the end to end anomaly detection pipeline:
 
