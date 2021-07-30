@@ -97,7 +97,7 @@ gcloud pubsub subscriptions create $REIDENTIFY_SUBSCRIPTION_ID --topic=$REIDENTI
 gsutil mb -c standard -l ${REGION} gs://${DATA_STORAGE_BUCKET}
 gsutil mb -c standard -l ${REGION} gs://${DATAFLOW_TEMP_BUCKET}
 
-gsutil cp - gs://${DATA_STORAGE_BUCKET}/reid_query.sql
+gsutil cp reid_query.sql gs://${DATA_STORAGE_BUCKET}/reid_query.sql
 ```
 
 7. Run following commands in Cloud Shell to clone the GitHub repository:
