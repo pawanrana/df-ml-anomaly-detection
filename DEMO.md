@@ -534,6 +534,11 @@ The result from this statement is a table of calculated normalized distances for
 ![model_training](diagram/bq-ml-kmeans-2.png)
 
 ## Looker Integration
+
+1. Import Dashboards, Model and Views from Github Project https://github.com/llooker/anomaly_detection_network_logs/tree/dev-pawan-rana-4zww into Looker
+2. Create Database connection against your BQ Dataset in Looker and modify the connection in the Looker model at anomaly_detection_network_logs/model/anomaly_detection.model.lkml
+3. Save, Commit and Deploy the change to Production in Looker
+4. Refresh the Dashboards in Looker to see the latest insights from your end to end Pipeline deployment as follows 
 ![looker_integration](diagram/anomaly-detection.png)
 ![looker_integration](diagram/Looker-subnet-search.png)
 
